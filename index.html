@@ -5,15 +5,22 @@
 <p id="m">Laddar hemskärmen…</p>
 <script>
 // The real page lives on the home RPi (HA /local), so the HA token never leaves the home network.
-// It is written into this document instead of navigated to, so the page keeps TizenBrew's tizen.* APIs.
-var SRC = "http://192.168.1.228:8123/local/tvhome/index.html";
+// It is loaded as a <script> (no CORS needed) and written into this document, so the page keeps
+// TizenBrew's tizen.* APIs.
+var SRC = "http://192.168.1.228:8123/local/tvhome/page.js";
 function load(n) {
-  fetch(SRC + "?t=" + Date.now()).then(function (r) { if (!r.ok) throw r.status; return r.text(); })
-    .then(function (html) { document.open(); document.write(html); document.close(); })
-    .catch(function () {
-      document.getElementById("m").textContent = "Hittar inte Home Assistant (" + SRC + "), försöker igen…";
-      setTimeout(function () { load(n + 1); }, Math.min(30000, 2000 * (n + 1)));
-    });
+  var s = document.createElement("script");
+  s.src = SRC + "?t=" + Date.now();
+  s.onload = function () {
+    if (!window.__TVHOME__) return s.onerror();
+    var html = window.__TVHOME__;
+    document.open(); document.write(html); document.close();
+  };
+  s.onerror = function () {
+    document.getElementById("m").textContent = "Hittar inte Home Assistant (" + SRC + "), försöker igen…";
+    setTimeout(function () { load(n + 1); }, Math.min(30000, 2000 * (n + 1)));
+  };
+  document.head.appendChild(s);
 }
 load(0);
 </script>
